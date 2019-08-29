@@ -6,9 +6,14 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="MvvmCross" Version="6.3.1" />
     <PackageReference Include="MvvmCross.Plugin.BLE" Version="2.1.1" />
     <PackageReference Include="Plugin.BLE" Version="2.1.1" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="4.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\WirelessPrototype.Models\WirelessPrototype.Models.csproj" />
   </ItemGroup>
 
 </Project>
