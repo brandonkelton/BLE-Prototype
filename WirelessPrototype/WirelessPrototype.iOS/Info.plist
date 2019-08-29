@@ -34,5 +34,15 @@
     <string>WirelessPrototype</string>
     <key>XSAppIconAssets</key>
     <string>Assets.xcassets/AppIcon.appiconset</string>
+    <key>UIBackgroundModes</key>
+    <array>
+        <!--for connecting to devices (client)-->
+        <string>bluetooth-central</string>
+        <!--for server configurations if needed-->
+        <string>bluetooth-peripheral</string>
+    </array>
+    <!--Description of the Bluetooth request message (required on iOS 10)-->
+    <key>NSBluetoothPeripheralUsageDescription</key>
+    <string>BLE Prototype</string>
 </dict>
 </plist>
