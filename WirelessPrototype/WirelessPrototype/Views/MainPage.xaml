@@ -1,20 +1,17 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:WirelessPrototype.ViewModels;assembly=WirelessPrototype"
              x:Class="WirelessPrototype.Views.MainPage">
     <StackLayout Margin="20,35,20,20">
-        <ListView>
-            <ListView.ItemsSource>
-                <x:Array Type="{x:Type x:String}">
-                  <x:String>Baboon</x:String>
-                  <x:String>Capuchin Monkey</x:String>
-                  <x:String>Blue Monkey</x:String>
-                  <x:String>Squirrel Monkey</x:String>
-                  <x:String>Golden Lion Tamarin</x:String>
-                  <x:String>Howler Monkey</x:String>
-                  <x:String>Japanese Macaque</x:String>
-                </x:Array>
-            </ListView.ItemsSource>
+        <StackLayout.BindingContext>
+            <local:MainPageViewModel/>
+        </StackLayout.BindingContext>
+        <Button Text="Scan For Devices" Command="{Binding ScanForDevicesCommand}"></Button>
+        <ListView ItemsSource="{Binding Devices}">
+            <ListView.BindingContext>
+                <local:MainPageViewModel/>
+            </ListView.BindingContext>
         </ListView>
     </StackLayout>
 </ContentPage>

@@ -14,23 +14,9 @@ namespace WirelessPrototype.Views
     [DesignTimeVisible(false)]
     public partial class MainPage : ContentPage
     {
-        public ObservableCollection<DeviceModel> Devices { get; set; } = new ObservableCollection<DeviceModel>();
-        private readonly IBLEService _bleService;
-
         public MainPage()
         {
             InitializeComponent();
-            _bleService = DependencyService.Resolve<IBLEService>();
-            _bleService.DeviceDetected += DeviceDetected;
-            _bleService.ScanForDevices();
-        }
-
-        private void DeviceDetected(object sender, DeviceAddedEventArgs args)
-        {
-            if (args.Device != null)
-            {
-                Devices.Add(args.Device);
-            }
         }
     }
 }
