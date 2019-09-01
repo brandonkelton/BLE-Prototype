@@ -21,13 +21,14 @@ namespace WirelessPrototype
         public App()
         {
             InitializeComponent();
+            DependencyService.Register<MainPage>();
             DependencyService.Register<IBLEService, BLEService>();
 
             if (UseMockDataStore)
                 DependencyService.Register<MockDataStore>();
             else
                 DependencyService.Register<AzureDataStore>();
-            MainPage = new MainPage();
+            MainPage = DependencyService.Get<MainPage>();
         }
 
         protected override void OnStart()

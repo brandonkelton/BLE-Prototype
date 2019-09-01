@@ -1,16 +1,21 @@
-﻿using System;
+﻿using Plugin.BLE.Abstractions.Contracts;
+using Plugin.BLE.Abstractions.EventArgs;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Text;
 using System.Threading.Tasks;
-using WirelessPrototype.Models;
 
 namespace WirelessPrototype.Services
 {
     public interface IBLEService
     {
-        event EventHandler<DeviceAddedEventArgs> DeviceDetected;
+        event EventHandler<DeviceEventArgs> DeviceDetected;
 
         Task ScanForDevices();
+
+        Task StopScanningForDevices();
+
+        Task ConnectToDevice(IDevice device);
     }
 }

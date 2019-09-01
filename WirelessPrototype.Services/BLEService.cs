@@ -2,11 +2,13 @@
 using Plugin.BLE;
 using Plugin.BLE.Abstractions.Contracts;
 using Plugin.BLE.Abstractions.EventArgs;
+using Plugin.BLE.Abstractions.Exceptions;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using WirelessPrototype.Models;
 
@@ -14,10 +16,11 @@ namespace WirelessPrototype.Services
 {
     public class BLEService : IBLEService
     {
-        public event EventHandler<DeviceAddedEventArgs> DeviceDetected;
+        public event EventHandler<DeviceEventArgs> DeviceDetected;
+        public event EventHandler<DeviceEventArgs> DeviceConnected;
 
-        private IBluetoothLE _ble;
-        private IAdapter _adapter;
+        private readonly IBluetoothLE _ble;
+        private readonly IAdapter _adapter;
 
         public BLEService()
         {
@@ -27,52 +30,56 @@ namespace WirelessPrototype.Services
             SetupEventHandling();
         }
 
-        private void SetupEventHandling()
-        {
-            _adapter.DeviceDiscovered += (s, a) =>
-            {
-                DeviceAddedEventArgs args = new DeviceAddedEventArgs()
-                {
-                    Device = new DeviceModel() { Id = a.Device.Id, Name = a.Device.Name }
-                };
-
-                OnDeviceDetected(args);
-            };
-
-            _adapter.DeviceAdvertised += (s, a) =>
-            {
-                DeviceAddedEventArgs args = new DeviceAddedEventArgs()
-                {
-                    Device = new DeviceModel() { Id = a.Device.Id, Name = a.Device.Name }
-                };
-
-                OnDeviceDetected(args);
-            };
-
-            _ble.StateChanged += (s, e) => OnStateChanged(e);
-        }
+        public IReadOnlyList<IDevice> ConnectedDevices => _adapter.ConnectedDevices;
 
         public async Task ScanForDevices()
         {
             _adapter.ScanMode = ScanMode.LowLatency;
-            _adapter.ScanTimeout = 60000;
+            _adapter.ScanTimeout = 10000;
 
             await _adapter.StartScanningForDevicesAsync();
         }
 
-        private void OnDeviceDetected(DeviceAddedEventArgs e)
+        public async Task StopScanningForDevices()
+        {
+            await _adapter.StopScanningForDevicesAsync();
+        }
+
+        public async Task ConnectToDevice(IDevice device)
+        {
+            try
+            {
+                await _adapter.ConnectToDeviceAsync(device);
+            } catch (DeviceConnectionException e)
+            {
+                // Handle bad connection
+            }
+        }
+
+        private void SetupEventHandling()
+        {
+            _ble.StateChanged += OnStateChanged;
+            _adapter.DeviceDiscovered += OnDeviceDetected;
+            //_adapter.DeviceAdvertised += OnDeviceAdvertised;
+            //_adapter.ScanTimeoutElapsed += OnScanTimeoutElapsed;
+            //_adapter.DeviceDisconnected += OnDeviceDisconnected;
+            _adapter.DeviceConnected += OnDeviceConnected;
+            //_adapter.DeviceConnectionLost += OnDeviceConnectionLost;
+        }
+
+        private void OnDeviceDetected(object sender, DeviceEventArgs e)
         {
             DeviceDetected?.Invoke(this, e);
         }
 
-        private void OnStateChanged(BluetoothStateChangedArgs args)
+        private void OnStateChanged(object sender, BluetoothStateChangedArgs e)
         {
-            Debug.WriteLine($"Old State: {args.OldState.ToString()}, New State: {args.NewState.ToString()}");
+            Debug.WriteLine($"Old State: {e.OldState}, New State: {e.NewState}");
         }
-    }
 
-    public class DeviceAddedEventArgs : EventArgs
-    {
-        public DeviceModel Device { get; set; }
+        private void OnDeviceConnected(object sender, DeviceEventArgs e)
+        {
+            DeviceConnected?.Invoke(this, e);
+        }
     }
 }

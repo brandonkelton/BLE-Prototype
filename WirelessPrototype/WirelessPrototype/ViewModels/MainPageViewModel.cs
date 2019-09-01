@@ -1,6 +1,9 @@
-﻿using System;
+﻿using Plugin.BLE.Abstractions.Contracts;
+using Plugin.BLE.Abstractions.EventArgs;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -12,7 +15,7 @@ namespace WirelessPrototype.ViewModels
 {
     public class MainPageViewModel : BaseViewModel
     {
-        public ObservableCollection<DeviceModel> Devices { get; set; } = new ObservableCollection<DeviceModel>();
+        public ObservableCollection<IDevice> Devices { get; set; } = new ObservableCollection<IDevice>();
         public ICommand ScanForDevicesCommand { private set; get; }
         private readonly IBLEService _bleService;
 
@@ -23,21 +26,30 @@ namespace WirelessPrototype.ViewModels
             SetupButtonCommands();            
         }
 
-        private void SetupButtonCommands()
-        {
-            ScanForDevicesCommand = new Command(execute: async () => await ScanForDevices());
-        }
-
         public async Task ScanForDevices()
         {
             await _bleService.ScanForDevices();
         }
 
-        private void DeviceDetected(object sender, DeviceAddedEventArgs args)
+        public async Task ConnectToDevice(Guid id)
         {
-            if (args.Device != null)
+            var device = Devices.ToList().FirstOrDefault(d => d.Id.Equals(id));
+            if (device != null)
             {
-                Devices.Add(args.Device);
+                await _bleService.ConnectToDevice(device);
+            }
+        }
+
+        private void SetupButtonCommands()
+        {
+            ScanForDevicesCommand = new Command(async () => await ScanForDevices());
+        }
+
+        private void DeviceDetected(object sender, DeviceEventArgs e)
+        {
+            if (e.Device != null && !String.IsNullOrEmpty(e.Device.Name))
+            {
+                Devices.Add(e.Device);
             }
         }
     }
