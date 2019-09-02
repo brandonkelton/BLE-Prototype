@@ -5,12 +5,11 @@ using Plugin.BLE.Abstractions.EventArgs;
 using Plugin.BLE.Abstractions.Exceptions;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using WirelessPrototype.Models;
 
 namespace WirelessPrototype.Services
 {
@@ -34,6 +33,8 @@ namespace WirelessPrototype.Services
 
         public async Task ScanForDevices()
         {
+            if (_adapter.IsScanning) return;
+
             _adapter.ScanMode = ScanMode.LowLatency;
             _adapter.ScanTimeout = 10000;
 
@@ -45,11 +46,12 @@ namespace WirelessPrototype.Services
             await _adapter.StopScanningForDevicesAsync();
         }
 
-        public async Task ConnectToDevice(IDevice device)
+        public async Task ConnectToDevice(Guid id)
         {
             try
             {
-                await _adapter.ConnectToDeviceAsync(device);
+                var device = _adapter.DiscoveredDevices.ToList().FirstOrDefault(d => d.Id.Equals(id));
+                if (device != null) await _adapter.ConnectToDeviceAsync(device);
             } catch (DeviceConnectionException e)
             {
                 // Handle bad connection
@@ -69,7 +71,11 @@ namespace WirelessPrototype.Services
 
         private void OnDeviceDetected(object sender, DeviceEventArgs e)
         {
-            DeviceDetected?.Invoke(this, e);
+            if (_adapter.DiscoveredDevices.ToList().FirstOrDefault(d => d.Id.Equals(e.Device.Id)) == null)
+            {
+                DeviceDetected?.Invoke(this, e);
+            }
+            
         }
 
         private void OnStateChanged(object sender, BluetoothStateChangedArgs e)

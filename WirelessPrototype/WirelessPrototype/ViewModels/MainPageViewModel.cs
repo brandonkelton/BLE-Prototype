@@ -15,14 +15,19 @@ namespace WirelessPrototype.ViewModels
 {
     public class MainPageViewModel : BaseViewModel
     {
-        public ObservableCollection<IDevice> Devices { get; set; } = new ObservableCollection<IDevice>();
+        public ObservableCollection<DeviceModel> DetectedDevices { get; set; } = new ObservableCollection<DeviceModel>();
+        public ObservableCollection<DeviceModel> ConnectedDevices { get; set; } = new ObservableCollection<DeviceModel>();
         public ICommand ScanForDevicesCommand { private set; get; }
+        public ICommand ConnectToDeviceCommand { private get; set; }
+
         private readonly IBLEService _bleService;
 
         public MainPageViewModel()
         {
             _bleService = DependencyService.Get<IBLEService>();
-            _bleService.DeviceDetected += DeviceDetected;
+            _bleService.DeviceDetected += OnDeviceDetected;
+            _bleService.DeviceConnected += OnDeviceConnected;
+
             SetupButtonCommands();            
         }
 
@@ -33,23 +38,40 @@ namespace WirelessPrototype.ViewModels
 
         public async Task ConnectToDevice(Guid id)
         {
-            var device = Devices.ToList().FirstOrDefault(d => d.Id.Equals(id));
-            if (device != null)
-            {
-                await _bleService.ConnectToDevice(device);
-            }
+            await _bleService.ConnectToDevice(id);
         }
 
         private void SetupButtonCommands()
         {
             ScanForDevicesCommand = new Command(async () => await ScanForDevices());
+            ConnectToDeviceCommand = new Command<Guid>(async id => await ConnectToDevice(id));
         }
 
-        private void DeviceDetected(object sender, DeviceEventArgs e)
+        private void OnDeviceDetected(object sender, DeviceEventArgs e)
         {
             if (e.Device != null && !String.IsNullOrEmpty(e.Device.Name))
             {
-                Devices.Add(e.Device);
+                var device = new DeviceModel
+                {
+                    Id = e.Device.Id,
+                    Name = e.Device.Name
+                };
+
+                DetectedDevices.Add(device);
+            }
+        }
+
+        private void OnDeviceConnected(object sender, DeviceEventArgs e)
+        {
+            if (e.Device != null)
+            {
+                var device = new DeviceModel
+                {
+                    Id = e.Device.Id,
+                    Name = e.Device.Name
+                };
+
+                ConnectedDevices.Add(device);
             }
         }
     }

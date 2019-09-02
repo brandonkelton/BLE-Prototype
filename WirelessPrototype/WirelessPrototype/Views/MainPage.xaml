@@ -7,11 +7,28 @@
         <StackLayout.BindingContext>
             <local:MainPageViewModel/>
         </StackLayout.BindingContext>
-        <Button Text="Scan For Devices" Command="{Binding ScanForDevicesCommand}"></Button>
-        <ListView ItemsSource="{Binding Devices}">
+        <Label Text="Connected Devices"/>
+        <ListView ItemsSource="{Binding ConnectedDevices}">
             <ListView.BindingContext>
                 <local:MainPageViewModel/>
             </ListView.BindingContext>
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <Label Text="{Binding Name}"/>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+        <Button Text="Scan For Devices" Command="{Binding ScanForDevicesCommand}"></Button>
+        <Label Text="Detected Devices"/>
+        <ListView ItemsSource="{Binding DetectedDevices}">
+            <ListView.BindingContext>
+                <local:MainPageViewModel/>
+            </ListView.BindingContext>
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <Button Text="{Binding Name}" Command="{Binding ConnectToDeviceCommand}"/>
+                </DataTemplate>
+            </ListView.ItemTemplate>
         </ListView>
     </StackLayout>
 </ContentPage>
