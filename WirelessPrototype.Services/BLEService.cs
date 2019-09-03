@@ -71,7 +71,7 @@ namespace WirelessPrototype.Services
 
         private void OnDeviceDetected(object sender, DeviceEventArgs e)
         {
-            if (_adapter.DiscoveredDevices.ToList().FirstOrDefault(d => d.Id.Equals(e.Device.Id)) == null)
+            if (e.Device != null && !String.IsNullOrEmpty(e.Device.Name))
             {
                 DeviceDetected?.Invoke(this, e);
             }

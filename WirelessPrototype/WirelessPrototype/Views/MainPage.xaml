@@ -26,7 +26,7 @@
             </ListView.BindingContext>
             <ListView.ItemTemplate>
                 <DataTemplate>
-                    <Button Text="{Binding Name}" Command="{Binding ConnectToDeviceCommand}"/>
+                    <Button Text="{Binding Name}" Command="{Binding ConnectToDeviceCommand}" CommandParameter="{Binding Id}"/>
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>

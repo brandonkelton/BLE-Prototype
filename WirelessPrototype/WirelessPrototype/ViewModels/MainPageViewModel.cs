@@ -49,16 +49,13 @@ namespace WirelessPrototype.ViewModels
 
         private void OnDeviceDetected(object sender, DeviceEventArgs e)
         {
-            if (e.Device != null && !String.IsNullOrEmpty(e.Device.Name))
+            var device = new DeviceModel
             {
-                var device = new DeviceModel
-                {
-                    Id = e.Device.Id,
-                    Name = e.Device.Name
-                };
+                Id = e.Device.Id,
+                Name = e.Device.Name
+            };
 
-                DetectedDevices.Add(device);
-            }
+            DetectedDevices.Add(device);
         }
 
         private void OnDeviceConnected(object sender, DeviceEventArgs e)
