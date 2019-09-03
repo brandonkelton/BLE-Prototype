@@ -42,7 +42,12 @@ namespace WirelessPrototype.ViewModels
             await _bleService.ConnectToDevice(id);
         }
 
-        public string ErrorDetail { get; private set; }
+        private string errorDetail;
+        public string ErrorDetail
+        {
+            get { return errorDetail; }
+            set { SetProperty(ref errorDetail, value); }
+        }
 
         private void SetupButtonCommands()
         {
@@ -78,7 +83,6 @@ namespace WirelessPrototype.ViewModels
         private void OnErrorEvent(object sender, Exception e)
         {
             ErrorDetail = e.Message;
-            OnPropertyChanged("ErrorDetail");
         }
     }
 }
