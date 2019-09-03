@@ -15,7 +15,7 @@ namespace WirelessPrototype.Services
 {
     public class BLEService : IBLEService
     {
-        public event EventHandler<DeviceEventArgs> DeviceDetected;
+        public event EventHandler<IDevice> DeviceDetected;
         public event EventHandler<DeviceEventArgs> DeviceConnected;
         public event EventHandler<Exception> ErrorEvent;
 
@@ -87,11 +87,11 @@ namespace WirelessPrototype.Services
 
         private void OnDeviceDetected(object sender, DeviceEventArgs e)
         {
-            if (e.Device != null && !String.IsNullOrEmpty(e.Device.Name))
+            if (!String.IsNullOrEmpty(e.Device?.Name))
             {
                 try
                 {
-                    DeviceDetected?.Invoke(this, e);
+                    DeviceDetected?.Invoke(this, e.Device);
                 }
                 catch (Exception ex)
                 {

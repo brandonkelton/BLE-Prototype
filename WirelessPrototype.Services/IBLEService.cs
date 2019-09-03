@@ -10,7 +10,7 @@ namespace WirelessPrototype.Services
 {
     public interface IBLEService
     {
-        event EventHandler<DeviceEventArgs> DeviceDetected;
+        event EventHandler<IDevice> DeviceDetected;
         event EventHandler<DeviceEventArgs> DeviceConnected;
         event EventHandler<Exception> ErrorEvent;
 

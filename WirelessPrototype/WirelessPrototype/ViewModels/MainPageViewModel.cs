@@ -55,12 +55,12 @@ namespace WirelessPrototype.ViewModels
             ConnectToDeviceCommand = new Command<Guid>(async id => await ConnectToDevice(id));
         }
 
-        private void OnDeviceDetected(object sender, DeviceEventArgs e)
+        private void OnDeviceDetected(object sender, IDevice detectedDevice)
         {
             var device = new DeviceModel
             {
-                Id = e.Device.Id,
-                Name = e.Device.Name
+                Id = detectedDevice.Id,
+                Name = detectedDevice.Name
             };
 
             DetectedDevices.Add(device);

@@ -10,24 +10,26 @@
         <Label Text="{Binding ErrorDetail}"/>
         <Label Text="Connected Devices"/>
         <ListView ItemsSource="{Binding ConnectedDevices}">
-            <ListView.BindingContext>
-                <local:MainPageViewModel/>
-            </ListView.BindingContext>
             <ListView.ItemTemplate>
                 <DataTemplate>
-                    <Label Text="{Binding Name}"/>
+                    <ViewCell>
+                        <Grid>
+                            <Label Text="{Binding Name}"/>
+                        </Grid>
+                    </ViewCell>
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
         <Button Text="Scan For Devices" Command="{Binding ScanForDevicesCommand}"></Button>
         <Label Text="Detected Devices"/>
         <ListView ItemsSource="{Binding DetectedDevices}">
-            <ListView.BindingContext>
-                <local:MainPageViewModel/>
-            </ListView.BindingContext>
             <ListView.ItemTemplate>
                 <DataTemplate>
-                    <Button Text="{Binding Name}" Command="{Binding ConnectToDeviceCommand}" CommandParameter="{Binding Id}"/>
+                    <ViewCell>
+                        <Grid>
+                            <Button Text="{Binding Name}" Command="{Binding ConnectToDeviceCommand}" CommandParameter="{Binding Id}"/>
+                        </Grid>
+                    </ViewCell>
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
