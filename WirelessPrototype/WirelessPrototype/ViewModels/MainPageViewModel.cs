@@ -27,6 +27,7 @@ namespace WirelessPrototype.ViewModels
             _bleService = DependencyService.Get<IBLEService>();
             _bleService.DeviceDetected += OnDeviceDetected;
             _bleService.DeviceConnected += OnDeviceConnected;
+            _bleService.ErrorEvent += OnErrorEvent;
 
             SetupButtonCommands();            
         }
@@ -40,6 +41,8 @@ namespace WirelessPrototype.ViewModels
         {
             await _bleService.ConnectToDevice(id);
         }
+
+        public string ErrorDetail { get; private set; }
 
         private void SetupButtonCommands()
         {
@@ -70,6 +73,12 @@ namespace WirelessPrototype.ViewModels
 
                 ConnectedDevices.Add(device);
             }
+        }
+
+        private void OnErrorEvent(object sender, Exception e)
+        {
+            ErrorDetail = e.Message;
+            OnPropertyChanged("ErrorDetail");
         }
     }
 }

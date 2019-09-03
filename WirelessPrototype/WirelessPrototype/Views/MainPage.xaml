@@ -7,6 +7,7 @@
         <StackLayout.BindingContext>
             <local:MainPageViewModel/>
         </StackLayout.BindingContext>
+        <Label Text="{Binding ErrorDetail}"/>
         <Label Text="Connected Devices"/>
         <ListView ItemsSource="{Binding ConnectedDevices}">
             <ListView.BindingContext>

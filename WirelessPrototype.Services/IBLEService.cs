@@ -12,6 +12,7 @@ namespace WirelessPrototype.Services
     {
         event EventHandler<DeviceEventArgs> DeviceDetected;
         event EventHandler<DeviceEventArgs> DeviceConnected;
+        event EventHandler<Exception> ErrorEvent;
 
         Task ScanForDevices();
 

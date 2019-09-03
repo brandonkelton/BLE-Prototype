@@ -17,6 +17,7 @@ namespace WirelessPrototype.Services
     {
         public event EventHandler<DeviceEventArgs> DeviceDetected;
         public event EventHandler<DeviceEventArgs> DeviceConnected;
+        public event EventHandler<Exception> ErrorEvent;
 
         private readonly IBluetoothLE _ble;
         private readonly IAdapter _adapter;
@@ -38,12 +39,27 @@ namespace WirelessPrototype.Services
             _adapter.ScanMode = ScanMode.LowLatency;
             _adapter.ScanTimeout = 10000;
 
-            await _adapter.StartScanningForDevicesAsync();
+            try
+            {
+                await _adapter.StartScanningForDevicesAsync();
+            }
+            catch (Exception e)
+            {
+                RaiseErrorEvent(e);
+            }
         }
 
         public async Task StopScanningForDevices()
         {
-            await _adapter.StopScanningForDevicesAsync();
+            try
+            {
+                await _adapter.StopScanningForDevicesAsync();
+            }
+            catch (Exception ex)
+            {
+                RaiseErrorEvent(ex);
+            }
+            
         }
 
         public async Task ConnectToDevice(Guid id)
@@ -54,7 +70,7 @@ namespace WirelessPrototype.Services
                 if (device != null) await _adapter.ConnectToDeviceAsync(device);
             } catch (DeviceConnectionException e)
             {
-                // Handle bad connection
+                RaiseErrorEvent(e);
             }
         }
 
@@ -73,19 +89,40 @@ namespace WirelessPrototype.Services
         {
             if (e.Device != null && !String.IsNullOrEmpty(e.Device.Name))
             {
-                DeviceDetected?.Invoke(this, e);
+                try
+                {
+                    DeviceDetected?.Invoke(this, e);
+                }
+                catch (Exception ex)
+                {
+                    RaiseErrorEvent(ex);
+                }
+                
             }
             
         }
 
+        private void RaiseErrorEvent(Exception e)
+        {
+            ErrorEvent?.Invoke(this, e);
+        }
+
         private void OnStateChanged(object sender, BluetoothStateChangedArgs e)
         {
-            Debug.WriteLine($"Old State: {e.OldState}, New State: {e.NewState}");
+            // Debug.WriteLine($"Old State: {e.OldState}, New State: {e.NewState}");
         }
 
         private void OnDeviceConnected(object sender, DeviceEventArgs e)
         {
-            DeviceConnected?.Invoke(this, e);
+            try
+            {
+                DeviceConnected?.Invoke(this, e);
+            }
+            catch (Exception ex)
+            {
+                RaiseErrorEvent(ex);
+            }
+            
         }
     }
 }
