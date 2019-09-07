@@ -1,6 +1,4 @@
-﻿using Plugin.BLE.Abstractions.Contracts;
-using Plugin.BLE.Abstractions.EventArgs;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -15,32 +13,61 @@ namespace WirelessPrototype.ViewModels
 {
     public class MainPageViewModel : BaseViewModel
     {
-        public ObservableCollection<DeviceModel> DetectedDevices { get; set; } = new ObservableCollection<DeviceModel>();
-        public ObservableCollection<DeviceModel> ConnectedDevices { get; set; } = new ObservableCollection<DeviceModel>();
-        public ICommand ScanForDevicesCommand { private set; get; }
-        public ICommand ConnectToDeviceCommand { private get; set; }
+        //public ObservableCollection<DeviceModel> DetectedDevices { get; set; } = new ObservableCollection<DeviceModel>();
+        // public ObservableCollection<DeviceModel> ConnectedDevices { get; set; } = new ObservableCollection<DeviceModel>();
+        //public ICommand ScanForDevicesCommand { private set; get; }
+        //public ICommand ConnectToDeviceCommand { private set; get; }
+
+        public ICommand StartServerCommand { get; private set; }
+        public ICommand StartClientCommand { get; private set; }
+        public ICommand SendMessageCommand { get; private set; }
 
         private readonly IBLEService _bleService;
 
         public MainPageViewModel()
         {
             _bleService = DependencyService.Get<IBLEService>();
-            _bleService.DeviceDetected += OnDeviceDetected;
-            _bleService.DeviceConnected += OnDeviceConnected;
+            //_bleService.DeviceDetected += OnDeviceDetected;
+            //_bleService.DeviceConnected += OnDeviceConnected;
             _bleService.ErrorEvent += OnErrorEvent;
+            _bleService.InfoEvent += OnInfoEvent;
+            _bleService.ServerClientStarted += OnServerClientStarted;
 
             SetupButtonCommands();            
         }
 
-        public async Task ScanForDevices()
+        public bool IsServer => _bleService != null && _bleService.IsServer;
+        public bool IsClient => _bleService != null && _bleService.IsClient;
+
+        private void CreateServer()
         {
-            await _bleService.ScanForDevices();
+            _bleService.CreateServer();
         }
 
-        public async Task ConnectToDevice(Guid id)
+        private void CreateClient()
         {
-            await _bleService.ConnectToDevice(id);
+            _bleService.CreateClient();
         }
+
+        private async Task SendToServer(string text)
+        {
+            await _bleService.SendToServer(text);
+        }
+
+        private void SendToClients(string text)
+        {
+            _bleService.SendToClients(text);
+        }
+
+        //public async Task ScanForDevices()
+        //{
+        //    await _bleService.ScanForDevices();
+        //}
+
+        //public async Task ConnectToDevice(Guid id)
+        //{
+        //    await _bleService.ConnectToDevice(id);
+        //}
 
         private string errorDetail;
         public string ErrorDetail
@@ -49,40 +76,92 @@ namespace WirelessPrototype.ViewModels
             set { SetProperty(ref errorDetail, value); }
         }
 
+        private string infoDetail;
+        public string InfoDetail
+        {
+            get { return infoDetail; }
+            set { SetProperty(ref infoDetail, value); }
+        }
+
+        private string sendMessageText;
+        public string SendMessageText
+        {
+            get { return sendMessageText; }
+            set { SetProperty(ref sendMessageText, value); }
+        }
+
+        private bool canStartServerClient = true;
+        public bool CanStartServerClient
+        {
+            get { return canStartServerClient; }
+            set { SetProperty(ref canStartServerClient, value); }
+        }
+
+        private bool allowMessaging;
+        public bool AllowMessaging
+        {
+            get { return allowMessaging; }
+            set { SetProperty(ref allowMessaging, value); }
+        }
+
         private void SetupButtonCommands()
         {
-            ScanForDevicesCommand = new Command(async () => await ScanForDevices());
-            ConnectToDeviceCommand = new Command<Guid>(async id => await ConnectToDevice(id));
-        }
-
-        private void OnDeviceDetected(object sender, IDevice detectedDevice)
-        {
-            var device = new DeviceModel
+            //ScanForDevicesCommand = new Command(async () => await ScanForDevices());
+            //ConnectToDeviceCommand = new Command<Guid>(async id => await ConnectToDevice(id));
+            StartServerCommand = new Command(() => CreateServer());
+            StartClientCommand = new Command(() => CreateClient());
+            SendMessageCommand = new Command(async () =>
             {
-                Id = detectedDevice.Id,
-                Name = detectedDevice.Name
-            };
-
-            DetectedDevices.Add(device);
-        }
-
-        private void OnDeviceConnected(object sender, DeviceEventArgs e)
-        {
-            if (e.Device != null)
-            {
-                var device = new DeviceModel
+                if (IsServer)
                 {
-                    Id = e.Device.Id,
-                    Name = e.Device.Name
-                };
-
-                ConnectedDevices.Add(device);
-            }
+                    await SendToServer(SendMessageText);
+                }
+                else
+                {
+                    SendToClients(SendMessageText);
+                }
+            });
         }
+
+        //private void OnDeviceDetected(object sender, IDevice detectedDevice)
+        //{
+        //    var device = new DeviceModel
+        //    {
+        //        Id = detectedDevice.Id,
+        //        Name = detectedDevice.Name
+        //    };
+
+        //    DetectedDevices.Add(device);
+        //}
+
+        //private void OnDeviceConnected(object sender, DeviceEventArgs e)
+        //{
+        //    if (e.Device != null)
+        //    {
+        //        var device = new DeviceModel
+        //        {
+        //            Id = e.Device.Id,
+        //            Name = e.Device.Name
+        //        };
+
+        //        ConnectedDevices.Add(device);
+        //    }
+        //}
 
         private void OnErrorEvent(object sender, Exception e)
         {
             ErrorDetail = e.Message;
+        }
+
+        private void OnInfoEvent(object sender, string info)
+        {
+            InfoDetail = info;
+        }
+
+        private void OnServerClientStarted(object sender, bool isStarted)
+        {
+            CanStartServerClient = !isStarted;
+            AllowMessaging = isStarted;
         }
     }
 }

@@ -4,8 +4,6 @@ using Xamarin.Forms;
 using Xamarin.Forms.Xaml;
 using WirelessPrototype.Services;
 using WirelessPrototype.Views;
-using Plugin.BLE.Abstractions.Contracts;
-using Plugin.BLE;
 
 namespace WirelessPrototype
 {

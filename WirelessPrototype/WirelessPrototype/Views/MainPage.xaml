@@ -7,9 +7,25 @@
         <StackLayout.BindingContext>
             <local:MainPageViewModel/>
         </StackLayout.BindingContext>
+        <Grid IsVisible="{Binding CanStartServerClient}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Button Text="Start Server" Grid.Column="0" HorizontalOptions="Fill" Command="{Binding StartServerCommand}"/>
+            <Button Text="Start Client" Grid.Column="1" HorizontalOptions="Fill" Command="{Binding StartClientCommand}"/>
+        </Grid>
+        <Grid IsVisible="{Binding AllowMessaging}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="3*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Entry Text="{Binding SendMessageText}" Grid.Column="0" HorizontalOptions="FillAndExpand"></Entry>
+            <Button Text="Send" Grid.Column="1" HorizontalOptions="Fill" Command="{Binding SendToClientsCommand}"/>
+        </Grid>
         <Label Text="{Binding ErrorDetail}"/>
-        <Label Text="Connected Devices"/>
-        <ListView ItemsSource="{Binding ConnectedDevices}">
+        <Label Text="{Binding InfoDetail}"/>
+        <!--<ListView ItemsSource="{Binding ConnectedDevices}">
             <ListView.ItemTemplate>
                 <DataTemplate>
                     <ViewCell>
@@ -19,8 +35,8 @@
                     </ViewCell>
                 </DataTemplate>
             </ListView.ItemTemplate>
-        </ListView>
-        <Button Text="Scan For Devices" Command="{Binding ScanForDevicesCommand}"></Button>
+        </ListView>-->
+        <!--<Button Text="Scan For Devices" Command="{Binding ScanForDevicesCommand}"></Button>
         <Label Text="Detected Devices"/>
         <ListView ItemsSource="{Binding DetectedDevices}">
             <ListView.ItemTemplate>
@@ -32,6 +48,6 @@
                     </ViewCell>
                 </DataTemplate>
             </ListView.ItemTemplate>
-        </ListView>
+        </ListView>-->
     </StackLayout>
 </ContentPage>

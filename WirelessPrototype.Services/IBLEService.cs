@@ -1,6 +1,4 @@
-﻿using Plugin.BLE.Abstractions.Contracts;
-using Plugin.BLE.Abstractions.EventArgs;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Text;
@@ -10,14 +8,32 @@ namespace WirelessPrototype.Services
 {
     public interface IBLEService
     {
-        event EventHandler<IDevice> DeviceDetected;
-        event EventHandler<DeviceEventArgs> DeviceConnected;
         event EventHandler<Exception> ErrorEvent;
+        event EventHandler<string> InfoEvent;
+        event EventHandler<bool> ServerClientStarted;
 
-        Task ScanForDevices();
+        bool IsServer { get; }
+        bool IsClient { get; }
 
-        Task StopScanningForDevices();
+        void CreateServer();
 
-        Task ConnectToDevice(Guid id);
+        void CreateClient();
+
+        Task SendToServer(string text);
+
+        void SendToClients(string text);
+
+
+
+        //event EventHandler<IDevice> DeviceDetected;
+        //event EventHandler<DeviceEventArgs> DeviceConnected;
+
+        //event EventHandler<string> InfoEvent;
+
+        //Task ScanForDevices();
+
+        //Task StopScanningForDevices();
+
+        //Task ConnectToDevice(Guid id);
     }
 }
