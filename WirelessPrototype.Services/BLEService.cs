@@ -124,14 +124,14 @@ namespace WirelessPrototype.Services
         {
             _serverReadWriteCharacteristic = service.AddCharacteristic
             (
-                Guid.NewGuid(),
+                _readWriteServiceUUID,
                 CharacteristicProperties.Read | CharacteristicProperties.Write | CharacteristicProperties.WriteNoResponse,
                 GattPermissions.Read | GattPermissions.Write
             );
 
             _serverNotifyCharacteristic = service.AddCharacteristic
             (
-                Guid.NewGuid(),
+                _notifyServiceUUID,
                 CharacteristicProperties.Indicate | CharacteristicProperties.Notify,
                 GattPermissions.Read | GattPermissions.Write
             );
