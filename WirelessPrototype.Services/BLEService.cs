@@ -8,6 +8,7 @@ using System.Reactive.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using WirelessPrototype.Models;
 using IGattService = Plugin.BluetoothLE.Server.IGattService;
 
 namespace WirelessPrototype.Services
@@ -17,6 +18,7 @@ namespace WirelessPrototype.Services
         public event EventHandler<Exception> ErrorEvent;
         public event EventHandler<string> InfoEvent;
         public event EventHandler<bool> ServerClientStarted;
+        public event EventHandler<DeviceModel> DeviceDetected;
 
         private IGattServer _server = null;
         private IDisposable _serverSubscription = null;
@@ -29,9 +31,9 @@ namespace WirelessPrototype.Services
         private IDisposable _clientNotifySub = null;
 
         private readonly string _serverName = "PrototypeServer";
-        private readonly Guid _serverUUID = Guid.NewGuid();
-        private readonly Guid _readWriteServiceUUID = Guid.NewGuid();
-        private readonly Guid _notifyServiceUUID = Guid.NewGuid();
+        private readonly Guid _serverUUID = new Guid("f4d24129-ed3b-446c-9f7b-f2ae001df79f");
+        private readonly Guid _readWriteServiceUUID = new Guid("3a6a135c-d72f-4702-9048-972cd4159835");
+        private readonly Guid _notifyServiceUUID = new Guid("5f410f69-4296-4d05-88d2-6013f6c33e57");
 
         private Plugin.BluetoothLE.IGattCharacteristic _writeCharacteristic = null;
         private Plugin.BluetoothLE.Server.IGattCharacteristic _serverReadWriteCharacteristic = null;
@@ -54,7 +56,11 @@ namespace WirelessPrototype.Services
                 {
                     RaiseErrorEvent(error);
                 },
-                () => RaiseServerClientStarted(true));
+                () =>
+                {
+                    RaiseServerClientStarted(true);
+                    RaiseInfoEvent("Server Started!");
+                });
             }
             else
             {
@@ -67,41 +73,48 @@ namespace WirelessPrototype.Services
         {
             IsClient = true;
             RaiseServerClientStarted(true);
+            RaiseInfoEvent("Started Client!");
 
-            var scanConfig = new ScanConfig
+            //var scanConfig = new ScanConfig
+            //{
+            //    ScanType = BleScanType.LowLatency,
+            //    ServiceUuids = new List<Guid> { _notifyServiceUUID, _readWriteServiceUUID }
+            //};
+            
+            _scanSubscription = CrossBleAdapter.Current.Scan().Subscribe(scanResult =>
             {
-                ScanType = BleScanType.LowLatency,
-                ServiceUuids = new List<Guid> { _notifyServiceUUID, _readWriteServiceUUID }
-            };
-
-            _scanSubscription = CrossBleAdapter.Current.Scan(scanConfig).Subscribe(scanResult =>
-            {
-                if (scanResult.AdvertisementData.LocalName == _serverName)
+                var model = new DeviceModel
                 {
-                    var connectConfig = new ConnectionConfig();
-                    scanResult.Device.Connect();
+                    Id = scanResult.Device.Uuid,
+                    Name = scanResult.Device.Name
+                };
+                DeviceDetected?.Invoke(this, model);
+                //if (new List<Guid> { _serverUUID, _notifyServiceUUID, _readWriteServiceUUID }.Contains(scanResult.Device.Uuid))
+                //{
+                //    var connectConfig = new ConnectionConfig();
+                //    scanResult.Device.Connect();
 
-                    scanResult.Device.WhenAnyCharacteristicDiscovered().Subscribe(characteristic =>
-                    {
-                        if (characteristic.CanRead() && characteristic.CanWrite())
-                        {
-                            _writeCharacteristic = characteristic;
-                            _clientWriteSub = characteristic.Read().Subscribe(result =>
-                            {
-                                var text = Encoding.UTF8.GetString(result.Data);
-                                RaiseInfoEvent("Read: " + text);
-                            });
-                        }
-                        if (characteristic.CanNotifyOrIndicate())
-                        {
-                            _clientNotifySub = characteristic.EnableNotifications().Subscribe(result =>
-                            {
-                                var text = Encoding.UTF8.GetString(result.Data);
-                                RaiseInfoEvent("Notification: " + text);
-                            });
-                        }
-                    });
-                }
+                //    scanResult.Device.WhenAnyCharacteristicDiscovered().Subscribe(characteristic =>
+                //    {
+                //        if (characteristic.CanRead() && characteristic.CanWrite())
+                //        {
+                //            _writeCharacteristic = characteristic;
+                //            _clientWriteSub = characteristic.Read().Subscribe(result =>
+                //            {
+                //                var text = Encoding.UTF8.GetString(result.Data);
+                //                RaiseInfoEvent("Read: " + text);
+                //            });
+                //        }
+                //        if (characteristic.CanNotifyOrIndicate())
+                //        {
+                //            _clientNotifySub = characteristic.EnableNotifications().Subscribe(result =>
+                //            {
+                //                var text = Encoding.UTF8.GetString(result.Data);
+                //                RaiseInfoEvent("Notification: " + text);
+                //            });
+                //        }
+                //    });
+                //}
             });
         }
 

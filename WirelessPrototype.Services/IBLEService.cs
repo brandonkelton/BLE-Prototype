@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Text;
 using System.Threading.Tasks;
+using WirelessPrototype.Models;
 
 namespace WirelessPrototype.Services
 {
@@ -11,6 +12,7 @@ namespace WirelessPrototype.Services
         event EventHandler<Exception> ErrorEvent;
         event EventHandler<string> InfoEvent;
         event EventHandler<bool> ServerClientStarted;
+        event EventHandler<DeviceModel> DeviceDetected;
 
         bool IsServer { get; }
         bool IsClient { get; }
@@ -25,7 +27,7 @@ namespace WirelessPrototype.Services
 
 
 
-        //event EventHandler<IDevice> DeviceDetected;
+        
         //event EventHandler<DeviceEventArgs> DeviceConnected;
 
         //event EventHandler<string> InfoEvent;

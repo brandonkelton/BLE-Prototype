@@ -13,7 +13,7 @@ namespace WirelessPrototype.ViewModels
 {
     public class MainPageViewModel : BaseViewModel
     {
-        //public ObservableCollection<DeviceModel> DetectedDevices { get; set; } = new ObservableCollection<DeviceModel>();
+        public ObservableCollection<DeviceModel> DetectedDevices { get; private set; } = new ObservableCollection<DeviceModel>();
         // public ObservableCollection<DeviceModel> ConnectedDevices { get; set; } = new ObservableCollection<DeviceModel>();
         //public ICommand ScanForDevicesCommand { private set; get; }
         //public ICommand ConnectToDeviceCommand { private set; get; }
@@ -27,7 +27,7 @@ namespace WirelessPrototype.ViewModels
         public MainPageViewModel()
         {
             _bleService = DependencyService.Get<IBLEService>();
-            //_bleService.DeviceDetected += OnDeviceDetected;
+            _bleService.DeviceDetected += OnDeviceDetected;
             //_bleService.DeviceConnected += OnDeviceConnected;
             _bleService.ErrorEvent += OnErrorEvent;
             _bleService.InfoEvent += OnInfoEvent;
@@ -123,16 +123,13 @@ namespace WirelessPrototype.ViewModels
             });
         }
 
-        //private void OnDeviceDetected(object sender, IDevice detectedDevice)
-        //{
-        //    var device = new DeviceModel
-        //    {
-        //        Id = detectedDevice.Id,
-        //        Name = detectedDevice.Name
-        //    };
+        private void OnDeviceDetected(object sender, DeviceModel model)
+        {
+            if (DetectedDevices.Any(d => d.Id == model.Id || d.Name == model.Name))
+                return;
 
-        //    DetectedDevices.Add(device);
-        //}
+            DetectedDevices.Add(model);
+        }
 
         //private void OnDeviceConnected(object sender, DeviceEventArgs e)
         //{

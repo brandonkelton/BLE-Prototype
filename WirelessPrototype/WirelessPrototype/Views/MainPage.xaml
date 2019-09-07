@@ -25,17 +25,22 @@
         </Grid>
         <Label Text="{Binding ErrorDetail}"/>
         <Label Text="{Binding InfoDetail}"/>
-        <!--<ListView ItemsSource="{Binding ConnectedDevices}">
+        <ListView ItemsSource="{Binding DetectedDevices}">
             <ListView.ItemTemplate>
                 <DataTemplate>
                     <ViewCell>
                         <Grid>
-                            <Label Text="{Binding Name}"/>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Label Text="{Binding Name}" Grid.Column="0" HorizontalOptions="Fill"/>
+                            <Label Text="{Binding Id}" Grid.Column="1" HorizontalOptions="Fill"/>
                         </Grid>
                     </ViewCell>
                 </DataTemplate>
             </ListView.ItemTemplate>
-        </ListView>-->
+        </ListView>
         <!--<Button Text="Scan For Devices" Command="{Binding ScanForDevicesCommand}"></Button>
         <Label Text="Detected Devices"/>
         <ListView ItemsSource="{Binding DetectedDevices}">
