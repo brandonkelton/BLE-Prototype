@@ -137,25 +137,35 @@ namespace WirelessPrototype.Services
             {
                 scanResult.Device.DiscoverServices().Subscribe(service =>
                 {
+                    RaiseInfoEvent($"Service: {service.Uuid}");
                     if (service.Uuid.Equals(_primaryServiceUUID))
                     {
+                        scanResult.Device.Connect();
                         var model = new DeviceModel
                         {
                             Id = scanResult.Device.Uuid,
                             Name = scanResult.Device.Name
                         };
                         DeviceDetected?.Invoke(this, model);
-                        service.DiscoverCharacteristics().Subscribe(async characteristic =>
+
+                        scanResult.Device.WhenConnected().Subscribe(x =>
                         {
-                            // There should currently only be one characteristic
-                            _clientReadWriteCharacteristic = characteristic;
-                            if (characteristic.CanRead())
+                            RaiseInfoEvent("Connected to server");
+                            service.DiscoverCharacteristics().Subscribe(async characteristic =>
                             {
-                                var result = await characteristic.Read();
-                                var text = Encoding.UTF8.GetString(result.Data);
-                                RaiseInfoEvent(text);
-                            }
+                                RaiseInfoEvent($"Characteristic: {characteristic.Uuid}");
+                                // There should currently only be one characteristic
+                                _clientReadWriteCharacteristic = characteristic;
+                                if (characteristic.CanRead())
+                                {
+                                    var result = await characteristic.Read();
+                                    var text = Encoding.UTF8.GetString(result.Data);
+                                    RaiseInfoEvent(text);
+                                }
+                            });
                         });
+                        
+                        
                     }
                 });
 
