@@ -140,7 +140,16 @@ namespace WirelessPrototype.Services
                     RaiseInfoEvent($"Service: {service.Uuid}");
                     if (service.Uuid.Equals(_primaryServiceUUID))
                     {
-                        scanResult.Device.Connect();
+                        try
+                        {
+                            RaiseInfoEvent("Attempting connection");
+                            scanResult.Device.Connect();
+                        }
+                        catch (Exception e)
+                        {
+                            RaiseErrorEvent(e);
+                        }
+                        
                         var model = new DeviceModel
                         {
                             Id = scanResult.Device.Uuid,
