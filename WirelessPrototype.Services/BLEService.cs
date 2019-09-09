@@ -133,52 +133,32 @@ namespace WirelessPrototype.Services
             //    ServiceUuids = new List<Guid> { _notifyServiceUUID, _readWriteServiceUUID }
             //};
             
-            _scanSubscription = CrossBleAdapter.Current.Scan().Subscribe(scanResult =>
+            _scanSubscription = CrossBleAdapter.Current.Scan().Subscribe(async scanResult =>
             {
-                scanResult.Device.DiscoverServices().Subscribe(service =>
+                try
                 {
-                    if (service.Uuid.Equals(_primaryServiceUUID))
+                    _clientReadWriteCharacteristic = await scanResult.Device.GetKnownCharacteristics(_primaryServiceUUID, _readWriteServiceUUID);
+                    if (_clientReadWriteCharacteristic != null)
                     {
-                        RaiseInfoEvent($"Service: {service.Uuid}");
-
-                        var model = new DeviceModel
+                        CrossBleAdapter.Current.StopScan();
+                        RaiseInfoEvent("Attempting connection");
+                        scanResult.Device.Connect();
+                        if (_clientReadWriteCharacteristic.CanRead())
                         {
-                            Id = scanResult.Device.Uuid,
-                            Name = scanResult.Device.Name
-                        };
-                        DeviceDetected?.Invoke(this, model);
-
-                        try
-                        {
-                            RaiseInfoEvent("Attempting connection");
-                            scanResult.Device.Connect();
+                            var result = await _clientReadWriteCharacteristic.Read();
+                            var text = Encoding.UTF8.GetString(result.Data);
+                            RaiseInfoEvent(text);
                         }
-                        catch (Exception e)
-                        {
-                            RaiseErrorEvent(e);
-                        }
-
-                        scanResult.Device.WhenConnected().Subscribe(x =>
-                        {
-                            RaiseInfoEvent("Connected to server");
-                            service.DiscoverCharacteristics().Subscribe(async characteristic =>
-                            {
-                                
-                                RaiseInfoEvent($"Characteristic: {characteristic.Uuid}");
-                                // There should currently only be one characteristic
-                                _clientReadWriteCharacteristic = characteristic;
-                                if (characteristic.CanRead())
-                                {
-                                    var result = await characteristic.Read();
-                                    var text = Encoding.UTF8.GetString(result.Data);
-                                    RaiseInfoEvent(text);
-                                }
-                            });
-                        });
-                        
-                        
                     }
-                });
+                    else
+                    {
+                        RaiseErrorEvent(new Exception("Characteristic is null"));
+                    }
+                }
+                catch (Exception e)
+                {
+                    RaiseErrorEvent(e);
+                }
 
                 //if (new List<Guid> { _serverUUID, _notifyServiceUUID, _readWriteServiceUUID }.Contains(scanResult.Device.Uuid))
                 //{

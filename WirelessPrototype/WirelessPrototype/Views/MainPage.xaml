@@ -25,7 +25,7 @@
         </Grid>
         <Label Text="{Binding ErrorDetail}"/>
         <Label Text="{Binding InfoDetail}"/>
-        <ListView ItemsSource="{Binding DetectedDevices}">
+        <!--<ListView ItemsSource="{Binding DetectedDevices}">
             <ListView.ItemTemplate>
                 <DataTemplate>
                     <ViewCell>
@@ -40,7 +40,7 @@
                     </ViewCell>
                 </DataTemplate>
             </ListView.ItemTemplate>
-        </ListView>
+        </ListView>-->
         <!--<Button Text="Scan For Devices" Command="{Binding ScanForDevicesCommand}"></Button>
         <Label Text="Detected Devices"/>
         <ListView ItemsSource="{Binding DetectedDevices}">
