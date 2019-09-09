@@ -137,9 +137,17 @@ namespace WirelessPrototype.Services
             {
                 scanResult.Device.DiscoverServices().Subscribe(service =>
                 {
-                    RaiseInfoEvent($"Service: {service.Uuid}");
                     if (service.Uuid.Equals(_primaryServiceUUID))
                     {
+                        RaiseInfoEvent($"Service: {service.Uuid}");
+
+                        var model = new DeviceModel
+                        {
+                            Id = scanResult.Device.Uuid,
+                            Name = scanResult.Device.Name
+                        };
+                        DeviceDetected?.Invoke(this, model);
+
                         try
                         {
                             RaiseInfoEvent("Attempting connection");
@@ -149,19 +157,13 @@ namespace WirelessPrototype.Services
                         {
                             RaiseErrorEvent(e);
                         }
-                        
-                        var model = new DeviceModel
-                        {
-                            Id = scanResult.Device.Uuid,
-                            Name = scanResult.Device.Name
-                        };
-                        DeviceDetected?.Invoke(this, model);
 
                         scanResult.Device.WhenConnected().Subscribe(x =>
                         {
                             RaiseInfoEvent("Connected to server");
                             service.DiscoverCharacteristics().Subscribe(async characteristic =>
                             {
+                                
                                 RaiseInfoEvent($"Characteristic: {characteristic.Uuid}");
                                 // There should currently only be one characteristic
                                 _clientReadWriteCharacteristic = characteristic;
