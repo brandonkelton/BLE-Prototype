@@ -1,4 +1,5 @@
-﻿using Plugin.BluetoothLE;
+﻿using Newtonsoft.Json;
+using Plugin.BluetoothLE;
 using Plugin.BluetoothLE.Server;
 using System;
 using System.Collections.Generic;
@@ -21,6 +22,7 @@ namespace WirelessPrototype.Services
         public event EventHandler<DeviceModel> DeviceDetected;
 
         private IGattServer _server = null;
+        private IGattService _service = null;
         private IDisposable _serverSubscription = null;
         private IDisposable _notifyBroadcastSubscription = null;
         private IDisposable _deviceSubscriptionChangedSubscription = null;
@@ -32,35 +34,85 @@ namespace WirelessPrototype.Services
 
         private readonly string _serverName = "PrototypeServer";
         private readonly Guid _serverUUID = new Guid("f4d24129-ed3b-446c-9f7b-f2ae001df79f");
+        private readonly Guid _primaryServiceUUID = new Guid("0296b532-6ec7-44b3-977c-c6ff74ab2a30");
         private readonly Guid _readWriteServiceUUID = new Guid("3a6a135c-d72f-4702-9048-972cd4159835");
         private readonly Guid _notifyServiceUUID = new Guid("5f410f69-4296-4d05-88d2-6013f6c33e57");
 
-        private Plugin.BluetoothLE.IGattCharacteristic _writeCharacteristic = null;
+        private Plugin.BluetoothLE.IGattCharacteristic _clientReadWriteCharacteristic = null;
         private Plugin.BluetoothLE.Server.IGattCharacteristic _serverReadWriteCharacteristic = null;
-        private Plugin.BluetoothLE.Server.IGattCharacteristic _serverNotifyCharacteristic = null;
+        // private Plugin.BluetoothLE.Server.IGattCharacteristic _serverNotifyCharacteristic = null;
+
+        private int _serverReadCount = 0;
 
         public bool IsServer => _server != null;
         public bool IsClient { get; private set; }
 
-        public void CreateServer()
+        
+
+        public async Task CreateServer()
         {
             if (CrossBleAdapter.Current.Status == AdapterStatus.PoweredOn)
             {
-                _serverSubscription = CrossBleAdapter.Current.CreateGattServer().Subscribe(
-                server =>
+                try
                 {
-                    _server = server;
-                    _server.AddService(_serverUUID, true, service => ConfigureService(service));
-                },
-                error =>
-                {
-                    RaiseErrorEvent(error);
-                },
-                () =>
-                {
+                    RaiseInfoEvent("Creating Gatt Server");
+                    _server = await CrossBleAdapter.Current.CreateGattServer();
+                    RaiseInfoEvent("Gatt Server Created");
+                    _service = _server.CreateService(_primaryServiceUUID, true);
+                    RaiseInfoEvent("Primary Service Created");
+                    
+                    _serverReadWriteCharacteristic = _service.AddCharacteristic
+                    (
+                        _readWriteServiceUUID,
+                        CharacteristicProperties.Read | CharacteristicProperties.Write | CharacteristicProperties.WriteNoResponse,
+                        GattPermissions.Read | GattPermissions.Write
+                    );
+
+                    //_serverNotifyCharacteristic = _service.AddCharacteristic
+                    //(
+                    //    _notifyServiceUUID,
+                    //    CharacteristicProperties.Indicate | CharacteristicProperties.Notify,
+                    //    GattPermissions.Read | GattPermissions.Write
+                    //);
+
+                    _serverReadWriteCharacteristic.WhenReadReceived().Subscribe(x =>
+                    {
+                        _serverReadCount++;
+                        x.Value = Encoding.UTF8.GetBytes($"Server Response: {_serverReadCount}");
+                        x.Status = GattStatus.Success; // you can optionally set a status, but it defaults to Success
+                        RaiseInfoEvent("Received Read Request");
+                    });
+
+                    _serverReadWriteCharacteristic.WhenWriteReceived().Subscribe(x =>
+                    {
+                        var textReceivedFromClient = Encoding.UTF8.GetString(x.Value, 0, x.Value.Length);
+                        RaiseInfoEvent(textReceivedFromClient);
+                    });
+
+                    RaiseInfoEvent("Characteristics Added");
+
+                    var adData = new AdvertisementData
+                    {
+                        LocalName = _serverName,
+                        ServiceUuids = new List<Guid> { _service.Uuid }
+                    };
+
+                    var manufacturerData = new ManufacturerData
+                    {
+                        CompanyId = 1,
+                        Data = Encoding.UTF8.GetBytes("Tomorrow Never Dies")
+                    };
+                    adData.ManufacturerData = manufacturerData;
+                    RaiseInfoEvent("Starting Ad Service");
+                    CrossBleAdapter.Current.Advertiser.Start(adData);
+
+                    RaiseInfoEvent("Server and Service Started");
                     RaiseServerClientStarted(true);
-                    RaiseInfoEvent("Server Started!");
-                });
+                }
+                catch (Exception e)
+                {
+                    RaiseErrorEvent(e);
+                }
             }
             else
             {
@@ -83,12 +135,30 @@ namespace WirelessPrototype.Services
             
             _scanSubscription = CrossBleAdapter.Current.Scan().Subscribe(scanResult =>
             {
-                var model = new DeviceModel
+                scanResult.Device.DiscoverServices().Subscribe(service =>
                 {
-                    Id = scanResult.Device.Uuid,
-                    Name = scanResult.Device.Name
-                };
-                DeviceDetected?.Invoke(this, model);
+                    if (service.Uuid.Equals(_primaryServiceUUID))
+                    {
+                        var model = new DeviceModel
+                        {
+                            Id = scanResult.Device.Uuid,
+                            Name = scanResult.Device.Name
+                        };
+                        DeviceDetected?.Invoke(this, model);
+                        service.DiscoverCharacteristics().Subscribe(async characteristic =>
+                        {
+                            // There should currently only be one characteristic
+                            _clientReadWriteCharacteristic = characteristic;
+                            if (characteristic.CanRead())
+                            {
+                                var result = await characteristic.Read();
+                                var text = Encoding.UTF8.GetString(result.Data);
+                                RaiseInfoEvent(text);
+                            }
+                        });
+                    }
+                });
+
                 //if (new List<Guid> { _serverUUID, _notifyServiceUUID, _readWriteServiceUUID }.Contains(scanResult.Device.Uuid))
                 //{
                 //    var connectConfig = new ConnectionConfig();
@@ -120,8 +190,13 @@ namespace WirelessPrototype.Services
 
         public async Task SendToServer(string text)
         {
+            if (!_clientReadWriteCharacteristic.CanWrite())
+            {
+                RaiseErrorEvent(new Exception("Can't Write1"));
+            }
+
             var sendBytes = Encoding.UTF8.GetBytes(text);
-            var result = await _writeCharacteristic.Write(sendBytes);
+            var result = await _clientReadWriteCharacteristic.Write(sendBytes);
             var receivedText = Encoding.UTF8.GetString(result.Data);
             RaiseInfoEvent("Received: " + receivedText);
         }
@@ -130,67 +205,49 @@ namespace WirelessPrototype.Services
         {
             var bytes = Encoding.UTF8.GetBytes(text);
             //Can specify specific devices as an optional paramter
-            _serverNotifyCharacteristic.Broadcast(bytes);
+            _serverReadWriteCharacteristic.Broadcast(bytes);
         }
 
-        private void ConfigureService(IGattService service)
-        {
-            _serverReadWriteCharacteristic = service.AddCharacteristic
-            (
-                _readWriteServiceUUID,
-                CharacteristicProperties.Read | CharacteristicProperties.Write | CharacteristicProperties.WriteNoResponse,
-                GattPermissions.Read | GattPermissions.Write
-            );
-
-            _serverNotifyCharacteristic = service.AddCharacteristic
-            (
-                _notifyServiceUUID,
-                CharacteristicProperties.Indicate | CharacteristicProperties.Notify,
-                GattPermissions.Read | GattPermissions.Write
-            );
-
-            _deviceSubscriptionChangedSubscription = 
-                _serverNotifyCharacteristic.WhenDeviceSubscriptionChanged().Subscribe(e =>
-                {
-                    var @event = e.IsSubscribed ? "Subscribed" : "Unsubcribed";
-                    
-                    if (_notifyBroadcastSubscription == null)
-                    {
-                        _notifyBroadcastSubscription = Observable
-                            .Interval(TimeSpan.FromSeconds(1))
-                            .Where(x => _serverNotifyCharacteristic.SubscribedDevices.Count > 0)
-                            .Subscribe(_ =>
-                            {
-                                var dt = "Notification: A Subscription Changed";
-                                var bytes = Encoding.UTF8.GetBytes(dt);
-                                _serverNotifyCharacteristic.Broadcast(bytes);
-                            });
-                    }
-                });
-
-
-            _characteristicReadReceived = _serverReadWriteCharacteristic.WhenReadReceived().Subscribe(x =>
-            {
-                var textSendingToClient = "READ RECEIVED: Welcome to TND!!!";
-
-                // you must set a reply value
-                x.Value = Encoding.UTF8.GetBytes(textSendingToClient);
-                x.Status = GattStatus.Success; // you can optionally set a status, but it defaults to Success
-            });
-            _characteristicWriteReceived = _serverReadWriteCharacteristic.WhenWriteReceived().Subscribe(x =>
-            {
-                var textReceivedFromClient = Encoding.UTF8.GetString(x.Value, 0, x.Value.Length);
-                RaiseInfoEvent(textReceivedFromClient);
-            });
-
-            var adData = new AdvertisementData
-            {
-                LocalName = _serverName,
-                ServiceUuids = _server.Services.Select(s => s.Uuid).ToList()
-            };
+        //private void ConfigureService(IGattService service)
+        //{
             
-            CrossBleAdapter.Current.Advertiser.Start(adData);
-        }
+
+        //    _deviceSubscriptionChangedSubscription = 
+        //        _serverNotifyCharacteristic.WhenDeviceSubscriptionChanged().Subscribe(e =>
+        //        {
+        //            var @event = e.IsSubscribed ? "Subscribed" : "Unsubcribed";
+                    
+        //            if (_notifyBroadcastSubscription == null)
+        //            {
+        //                _notifyBroadcastSubscription = Observable
+        //                    .Interval(TimeSpan.FromSeconds(1))
+        //                    .Where(x => _serverNotifyCharacteristic.SubscribedDevices.Count > 0)
+        //                    .Subscribe(_ =>
+        //                    {
+        //                        var dt = "Notification: A Subscription Changed";
+        //                        var bytes = Encoding.UTF8.GetBytes(dt);
+        //                        _serverNotifyCharacteristic.Broadcast(bytes);
+        //                    });
+        //            }
+        //        });
+
+
+        //    _characteristicReadReceived = _serverReadWriteCharacteristic.WhenReadReceived().Subscribe(x =>
+        //    {
+        //        var textSendingToClient = "READ RECEIVED: Welcome to TND!!!";
+
+        //        // you must set a reply value
+        //        x.Value = Encoding.UTF8.GetBytes(textSendingToClient);
+        //        x.Status = GattStatus.Success; // you can optionally set a status, but it defaults to Success
+        //    });
+        //    _characteristicWriteReceived = _serverReadWriteCharacteristic.WhenWriteReceived().Subscribe(x =>
+        //    {
+        //        var textReceivedFromClient = Encoding.UTF8.GetString(x.Value, 0, x.Value.Length);
+        //        RaiseInfoEvent(textReceivedFromClient);
+        //    });
+
+            
+        //}
 
         private void RaiseErrorEvent(Exception e)
         {

@@ -28,6 +28,7 @@ namespace WirelessPrototype.ViewModels
         {
             _bleService = DependencyService.Get<IBLEService>();
             _bleService.DeviceDetected += OnDeviceDetected;
+            
             //_bleService.DeviceConnected += OnDeviceConnected;
             _bleService.ErrorEvent += OnErrorEvent;
             _bleService.InfoEvent += OnInfoEvent;
@@ -39,9 +40,9 @@ namespace WirelessPrototype.ViewModels
         public bool IsServer => _bleService != null && _bleService.IsServer;
         public bool IsClient => _bleService != null && _bleService.IsClient;
 
-        private void CreateServer()
+        private async Task CreateServer()
         {
-            _bleService.CreateServer();
+            await _bleService.CreateServer();
         }
 
         private void CreateClient()
@@ -108,7 +109,7 @@ namespace WirelessPrototype.ViewModels
         {
             //ScanForDevicesCommand = new Command(async () => await ScanForDevices());
             //ConnectToDeviceCommand = new Command<Guid>(async id => await ConnectToDevice(id));
-            StartServerCommand = new Command(() => CreateServer());
+            StartServerCommand = new Command(async () => await CreateServer());
             StartClientCommand = new Command(() => CreateClient());
             SendMessageCommand = new Command(async () =>
             {

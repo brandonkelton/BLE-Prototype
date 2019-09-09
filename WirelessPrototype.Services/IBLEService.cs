@@ -17,7 +17,7 @@ namespace WirelessPrototype.Services
         bool IsServer { get; }
         bool IsClient { get; }
 
-        void CreateServer();
+        Task CreateServer();
 
         void CreateClient();
 
