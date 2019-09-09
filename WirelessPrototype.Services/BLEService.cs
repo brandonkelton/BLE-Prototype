@@ -35,7 +35,7 @@ namespace WirelessPrototype.Services
         private readonly string _serverName = "PrototypeServer";
         private readonly Guid _serverUUID = new Guid("f4d24129-ed3b-446c-9f7b-f2ae001df79f");
         private readonly Guid _primaryServiceUUID = new Guid("0296b532-6ec7-44b3-977c-c6ff74ab2a30");
-        private readonly Guid _readWriteServiceUUID = new Guid("3a6a135c-d72f-4702-9048-972cd4159835");
+        private readonly Guid _readWriteCharacteristicUUID = new Guid("3a6a135c-d72f-4702-9048-972cd4159835");
         private readonly Guid _notifyServiceUUID = new Guid("5f410f69-4296-4d05-88d2-6013f6c33e57");
 
         private Plugin.BluetoothLE.IGattCharacteristic _clientReadWriteCharacteristic = null;
@@ -63,7 +63,7 @@ namespace WirelessPrototype.Services
                     
                     _serverReadWriteCharacteristic = _service.AddCharacteristic
                     (
-                        _readWriteServiceUUID,
+                        _readWriteCharacteristicUUID,
                         CharacteristicProperties.Read | CharacteristicProperties.Write | CharacteristicProperties.WriteNoResponse,
                         GattPermissions.Read | GattPermissions.Write
                     );
@@ -94,7 +94,7 @@ namespace WirelessPrototype.Services
                     var adData = new AdvertisementData
                     {
                         LocalName = _serverName,
-                        ServiceUuids = new List<Guid> { _service.Uuid }
+                        ServiceUuids = new List<Guid> { _primaryServiceUUID }
                     };
 
                     var manufacturerData = new ManufacturerData
@@ -105,7 +105,7 @@ namespace WirelessPrototype.Services
                     adData.ManufacturerData = manufacturerData;
                     RaiseInfoEvent("Starting Ad Service");
                     CrossBleAdapter.Current.Advertiser.Start(adData);
-
+                    
                     RaiseInfoEvent("Server and Service Started");
                     RaiseServerClientStarted(true);
                 }
@@ -132,27 +132,75 @@ namespace WirelessPrototype.Services
             //    ScanType = BleScanType.LowLatency,
             //    ServiceUuids = new List<Guid> { _notifyServiceUUID, _readWriteServiceUUID }
             //};
+
+            if (CrossBleAdapter.Current == null)
+            {
+                RaiseErrorEvent(new Exception("Adapter was null"));
+                return;
+            }
             
             _scanSubscription = CrossBleAdapter.Current.Scan().Subscribe(async scanResult =>
             {
+                if (scanResult.Device == null)
+                {
+                    RaiseErrorEvent(new Exception("Device was null"));
+                    return;
+                }
                 try
                 {
-                    _clientReadWriteCharacteristic = await scanResult.Device.GetKnownCharacteristics(_primaryServiceUUID, _readWriteServiceUUID);
-                    if (_clientReadWriteCharacteristic != null)
+                    var localName = scanResult.AdvertisementData?.LocalName;
+                    if (localName.Equals(_serverName))
                     {
-                        CrossBleAdapter.Current.StopScan();
-                        RaiseInfoEvent("Attempting connection");
-                        scanResult.Device.Connect();
-                        if (_clientReadWriteCharacteristic.CanRead())
+                        RaiseInfoEvent($"YES: {localName}");
+                    }
+                    else
+                    {
+                        RaiseInfoEvent($"NO: {localName}");
+                        return;
+                    }
+                    RaiseInfoEvent("Attempting connection");
+                    scanResult.Device.Connect();
+                    RaiseInfoEvent("Connected!");
+                    RaiseInfoEvent("Getting service");
+                    var service = await scanResult.Device.GetKnownService(_primaryServiceUUID);
+                    if (service == null)
+                    {
+                        RaiseInfoEvent("Service was null!");
+                        return;
+                    }
+                    RaiseInfoEvent("Service found");
+                    RaiseInfoEvent("Getting characteristic");
+                    _clientReadWriteCharacteristic = await service.GetKnownCharacteristics(_readWriteCharacteristicUUID);
+                    if (_clientReadWriteCharacteristic == null)
+                    {
+                        RaiseErrorEvent(new Exception("Characteristic is null"));
+                        return;
+                    }
+                    RaiseInfoEvent("Characteristic found!");
+                    // var characteristicGattResult = await scanResult.Device.ConnectHook(_primaryServiceUUID, _readWriteCharacteristicUUID);
+                    // _clientReadWriteCharacteristic = characteristicGattResult.Characteristic;
+                    //_clientReadWriteCharacteristic = await scanResult.Device.GetKnownCharacteristics(_primaryServiceUUID, _readWriteCharacteristicUUID);
+
+                    // CrossBleAdapter.Current.StopScan();
+                    // RaiseInfoEvent("Attempting connection");
+                    
+                    if (_clientReadWriteCharacteristic.CanRead())
+                    {
+                        RaiseInfoEvent("Attempting initial read");
+                        var result = await _clientReadWriteCharacteristic.Read();
+                        if (result.Data != null)
                         {
-                            var result = await _clientReadWriteCharacteristic.Read();
                             var text = Encoding.UTF8.GetString(result.Data);
                             RaiseInfoEvent(text);
+                        }
+                        else
+                        {
+                            RaiseErrorEvent(new Exception("result.Data was null"));
                         }
                     }
                     else
                     {
-                        RaiseErrorEvent(new Exception("Characteristic is null"));
+                        RaiseInfoEvent("Can't read characteristic");
                     }
                 }
                 catch (Exception e)

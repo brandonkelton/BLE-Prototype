@@ -148,12 +148,12 @@ namespace WirelessPrototype.ViewModels
 
         private void OnErrorEvent(object sender, Exception e)
         {
-            ErrorDetail = e.Message;
+            ErrorDetail = e.Message + "\r\n" + e.StackTrace;
         }
 
         private void OnInfoEvent(object sender, string info)
         {
-            InfoDetail = info;
+            InfoDetail = info + "\r\n" + InfoDetail;
         }
 
         private void OnServerClientStarted(object sender, bool isStarted)
